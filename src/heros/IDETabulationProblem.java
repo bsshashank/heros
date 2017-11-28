@@ -10,7 +10,6 @@
  ******************************************************************************/
 package heros;
 
-import heros.solver.IDEDebugger;
 import heros.solver.IPropagationController;
 import heros.solver.Scheduler;
 
@@ -58,12 +57,19 @@ public interface IDETabulationProblem<N, D, M, V, I extends InterproceduralCFG<N
 	 */
 	EdgeFunction<V> allTopFunction();
 
-	IDEDebugger<N, D, M, V, I> getDebugger();
+//	IDEDebugger<N, D, M, V, I> getDebugger();
 
 	Flow<N, D, V> flowWrapper();
 
 	Scheduler getScheduler();
 
 	IPropagationController<N, D> propagationController();
+	
+	/**
+	 * Updates the locally cached control-flow graph over which the problem is computed.
+	 * Typically this will be a {@link JimpleBasedInterproceduralCFG}.
+	 * @param cfg The new control-flow graph
+	 */
+	void updateCFG(I cfg);
 
 }

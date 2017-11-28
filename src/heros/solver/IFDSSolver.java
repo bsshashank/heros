@@ -169,7 +169,7 @@ public class IFDSSolver<N, D, M, I extends InterproceduralCFG<N, M>>
 				return false;
 			}
 
-			@Override
+			/*@Override
 			public IDEDebugger<N, D, M, BinaryDomain, I> getDebugger() {
 				return new IDEDebugger<N, D, M, IFDSSolver.BinaryDomain, I>() {
 
@@ -209,7 +209,7 @@ public class IFDSSolver<N, D, M, I extends InterproceduralCFG<N, M>>
 
 					}
 				};
-			}
+			}*/
 
 			@Override
 			public Flow<N, D, BinaryDomain> flowWrapper() {
@@ -226,6 +226,12 @@ public class IFDSSolver<N, D, M, I extends InterproceduralCFG<N, M>>
 			@Override
 			public IPropagationController<N, D> propagationController() {
 				return ifdsProblem.propagationController();
+			}
+
+			@Override
+			public void updateCFG(I cfg) {
+				// TODO Auto-generated method stub
+				
 			}
 
 		};
