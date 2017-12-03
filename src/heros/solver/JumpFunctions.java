@@ -14,10 +14,13 @@ import heros.DontSynchronize;
 import heros.EdgeFunction;
 import heros.SynchronizedBy;
 import heros.ThreadSafe;
+import heros.util.Utils;
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -180,5 +183,54 @@ public class JumpFunctions<N,D,L> {
 		this.nonEmptyLookupByTargetNode.clear();
 		this.nonEmptyReverseLookup.clear();
 	}
+	
+	/**
+	 * Removes all jump function with the given target
+	 * @see target The target for which to remove all jump functions
+	 */
+	public synchronized void removeByTarget(N target) {
+		Utils.removeElementFromTable(nonEmptyReverseLookup, target);
+		nonEmptyLookupByTargetNode.remove(target);
+		
+		List<D> ds = new ArrayList<D>(nonEmptyForwardLookup.column(target).keySet());
+		for (D d : ds)
+			nonEmptyForwardLookup.remove(d, target);
+	}
 
+	/**
+	 * Gets the number of target units in this cache
+	 * @return The number of target units in this cache
+	 */
+	int getTargetCount() {
+		return nonEmptyForwardLookup.columnKeySet().size();
+	}
+	
+	/**
+	 * Gets the number of edges stored in this table
+	 * @return The number of edges stored in this table
+	 */
+	int getEdgeCount() {
+		return this.nonEmptyForwardLookup.size();
+	}
+
+	/**
+	 * Gets the overall number of source facts for which there are entries in
+	 * this cache
+	 * @return The overall number of source facts in this cache
+	 */
+	int getSourceValCount() {
+		return this.nonEmptyForwardLookup.rowKeySet().size();
+	}
+
+	/**
+	 * Gets all target facts defined at the given target node.
+	 * @param target The target node at which to get the target facts
+	 * @return The target facts at the given target node
+	 */
+	public Set<D> getTargetFactsAtTarget(N target) {
+		assert target!=null;
+		Table<D, D, EdgeFunction<L>> table = nonEmptyLookupByTargetNode.get(target);
+		if(table==null) return Collections.emptySet();
+		return table.columnKeySet();
+	}
 }

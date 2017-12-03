@@ -299,4 +299,15 @@ public class EdgeFunctionCache<N, D, M, V> implements EdgeFunctions<N, D, M, V> 
                 normalCache.stats(), callCache.stats(),returnCache.stats(),callToReturnCache.stats());
 	}
 
+	/**
+	 * Invalidates all entries in this cache so that they are computed again
+	 * when they are accessed the next time.
+	 */
+	public void invalidateAll() {
+		this.normalCache.invalidateAll();
+		this.callCache.invalidateAll();
+		this.returnCache.invalidateAll();
+		this.callToReturnCache.invalidateAll();
+	}
+
 }

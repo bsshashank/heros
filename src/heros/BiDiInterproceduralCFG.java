@@ -1,6 +1,5 @@
 package heros;
 
-import java.util.Collection;
 import java.util.List;
 import java.util.Set;
 
@@ -11,7 +10,7 @@ public interface BiDiInterproceduralCFG<N, M> extends InterproceduralCFG<N, M> {
 
 	public List<N> getPredsOf(N u);
 	
-	public Collection<N> getEndPointsOf(M m);
+//	public Collection<N> getEndPointsOf(M m);
 
 	public List<N> getPredsOfCallAt(N u);
 

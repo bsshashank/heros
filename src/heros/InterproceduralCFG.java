@@ -55,6 +55,11 @@ public interface InterproceduralCFG<N,M>  {
 	 * more than one start point in case of a backward analysis.
 	 */
 	public Collection<N> getStartPointsOf(M m);
+	
+	/**
+	 * Returns all exit points of a given method.
+	 */
+	public Collection<N> getEndPointsOf(M m);
 
 	/**
 	 * Returns all statements to which a call could return.
