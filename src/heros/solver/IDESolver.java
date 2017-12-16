@@ -50,6 +50,7 @@ import heros.JoinLattice;
 import heros.SynchronizedBy;
 import heros.ZeroedFlowFunctions;
 import heros.edgefunc.EdgeIdentity;
+import heros.incremental.CFGChangeSet;
 import heros.incremental.UpdatableInterproceduralCFG;
 import heros.incremental.UpdatableWrapper;
 import heros.util.ConcurrentHashSet;
@@ -548,16 +549,64 @@ public class IDESolver<N, D, M, V, I extends InterproceduralCFG<N, M>> {
 		}
 	}
 
-	@SuppressWarnings("unchecked")
-	public void update(I newCFG) {
-		System.out.println("updating analysis results");
-		System.out.println("val size " + val.size());
-
+	public void computeChangeSetAndMergeICFG(UpdatableInterproceduralCFG<N, M> newCFG, CFGChangeSet<N> changeSet) {
 		// Check whether we need to update anything at all.
 		if (newCFG == icfg())
 			return;
 
-		System.out.println("cfg " + newCFG);
+		// Incremental updates must have been enabled before computing the
+		// initial solver run.
+		if (!(icfg() instanceof UpdatableInterproceduralCFG))
+			throw new UnsupportedOperationException("Current CFG does not support incremental updates");
+		if (!(newCFG instanceof UpdatableInterproceduralCFG))
+			throw new UnsupportedOperationException("New CFG does not support incremental updates");
+
+		// Update the control flow graph
+		UpdatableInterproceduralCFG<N, M> oldcfg = (UpdatableInterproceduralCFG<N, M>) icfg();
+		newCFG = (UpdatableInterproceduralCFG<N, M>) newCFG;
+		I newI = (I) newCFG;
+		tabulationProblem.updateCFG(newI);
+
+		long beforeChangeset = System.nanoTime();
+		if (DEBUG)
+			System.out.println("Computing changeset...");
+
+		int edgeCount = this.optimizationMode == OptimizationMode.Performance ?
+				jumpFn.getEdgeCount() : 5000;
+				int nodeCount = this.optimizationMode == OptimizationMode.Performance ?
+						jumpFn.getTargetCount() : 5000;
+
+						changeSet.createChangedEdgeSet(edgeCount);
+						changeSet.createChangedNodeSet(nodeCount);
+						oldcfg.computeCFGChangeset(newCFG, changeSet.getExpiredEdges(), changeSet.getNewEdges(), changeSet.getNewNodes(), changeSet.getExpiredNodes());
+
+						Map<UpdatableWrapper<N>, List<UpdatableWrapper<N>>> expiredEdges = changeSet.getExpiredEdges();
+						Map<UpdatableWrapper<N>, List<UpdatableWrapper<N>>> newEdges = changeSet.getNewEdges();
+						Set<UpdatableWrapper<N>> newNodes = changeSet.getNewNodes();
+						Set<UpdatableWrapper<N>> expiredNodes = changeSet.getExpiredNodes();
+
+						// Change the wrappers so that they point to the new Jimple objects
+						long beforeMerge = System.nanoTime();
+						newCFG.merge(oldcfg);
+						System.out.println("CFG wrappers merged in " + (System.nanoTime() - beforeMerge) / 1E9 + " seconds.");
+
+						System.out.println("Changeset computed in " + (System.nanoTime() - beforeChangeset) / 1E9
+								+ " seconds. Found " + expiredEdges.size() + " expired edges, "
+								+ newEdges.size() + " new edges, "
+								+ expiredNodes.size() + " expired nodes, and "
+								+ newNodes.size() + " new nodes.");
+	}
+
+	@SuppressWarnings("unchecked")
+	public void update(I newCFG, CFGChangeSet<N> cfgChangeSet) {
+		System.out.println("updating analysis results");
+		System.out.println("val size " + val.size());
+		System.out.println("-------------------------------------update------------------------------------");
+		System.out.println("isChangeSetComputed " + cfgChangeSet.isChangeSetComputed());
+
+		// Check whether we need to update anything at all.
+		if (newCFG == icfg())
+			return;
 
 		// Incremental updates must have been enabled before computing the
 		// initial solver run.
@@ -581,38 +630,48 @@ public class IDESolver<N, D, M, V, I extends InterproceduralCFG<N, M>> {
 				int nodeCount = this.optimizationMode == OptimizationMode.Performance ?
 						jumpFn.getTargetCount() : 5000;
 
-						// Next, we need to create a change set on the control flow graph
-						Map<UpdatableWrapper<N>, List<UpdatableWrapper<N>>> expiredEdges =
-								new HashMap<UpdatableWrapper<N>, List<UpdatableWrapper<N>>>(edgeCount);
-						Map<UpdatableWrapper<N>, List<UpdatableWrapper<N>>> newEdges =
-								new HashMap<UpdatableWrapper<N>, List<UpdatableWrapper<N>>>(edgeCount);
-						Set<UpdatableWrapper<N>> newNodes = new ConcurrentHashSet<UpdatableWrapper<N>>(nodeCount);
-						Set<UpdatableWrapper<N>> expiredNodes = new ConcurrentHashSet<UpdatableWrapper<N>>(nodeCount);
-						oldcfg.computeCFGChangeset(newcfg, expiredEdges, newEdges, newNodes,
-								expiredNodes);
+						Map<UpdatableWrapper<N>, List<UpdatableWrapper<N>>> expiredEdges;
+						Map<UpdatableWrapper<N>, List<UpdatableWrapper<N>>> newEdges;
+						Set<UpdatableWrapper<N>> newNodes;
+						Set<UpdatableWrapper<N>> expiredNodes;
+						
+						if(!cfgChangeSet.isChangeSetComputed()) {
+							cfgChangeSet.createChangedEdgeSet(edgeCount);
+							cfgChangeSet.createChangedNodeSet(nodeCount);
+							
+							oldcfg.computeCFGChangeset(newcfg, cfgChangeSet.getExpiredEdges(), cfgChangeSet.getNewEdges(), cfgChangeSet.getNewNodes(), cfgChangeSet.getExpiredNodes());
+							cfgChangeSet.setChangeSetComputed(true);
+							
+							expiredEdges = cfgChangeSet.getExpiredEdges();
+							newEdges = cfgChangeSet.getNewEdges();
+							newNodes = cfgChangeSet.getNewNodes();
+							expiredNodes = cfgChangeSet.getExpiredNodes();
+							
+							// Change the wrappers so that they point to the new Jimple objects
+							long beforeMerge = System.nanoTime();
+							newcfg.merge(oldcfg);
+							System.out.println("CFG wrappers merged in " + (System.nanoTime() - beforeMerge) / 1E9 + " seconds.");
 
-						// Change the wrappers so that they point to the new Jimple objects
-						long beforeMerge = System.nanoTime();
-						newcfg.merge(oldcfg);
-						System.out.println("CFG wrappers merged in " + (System.nanoTime() - beforeMerge) / 1E9
-								+ " seconds.");
+							System.out.println("Changeset computed in " + (System.nanoTime() - beforeChangeset) / 1E9
+									+ " seconds. Found " + expiredEdges.size() + " expired edges, "
+									+ newEdges.size() + " new edges, "
+									+ expiredNodes.size() + " expired nodes, and "
+									+ newNodes.size() + " new nodes.");
 
-						// Invalidate all cached functions
-						ffCache.invalidateAll();
-						efCache.invalidateAll();
-
-						System.out.println("Changeset computed in " + (System.nanoTime() - beforeChangeset) / 1E9
-								+ " seconds. Found " + expiredEdges.size() + " expired edges, "
-								+ newEdges.size() + " new edges, "
-								+ expiredNodes.size() + " expired nodes, and "
-								+ newNodes.size() + " new nodes.");
-
-						// If we have not computed any graph changes, we are done
-						if (expiredEdges.size() == 0 && newEdges.size() == 0) {
-							System.out.println("CFG is unchanged, aborting update...");
-							return;
+							// If we have not computed any graph changes, we are done
+							if (expiredEdges.size() == 0 && newEdges.size() == 0) {
+								System.out.println("CFG is unchanged, aborting update...");
+								return;
+							}
 						}
-
+						else {
+							expiredEdges = cfgChangeSet.getExpiredEdges();
+							newEdges = cfgChangeSet.getNewEdges();
+							newNodes = cfgChangeSet.getNewNodes();
+							expiredNodes = cfgChangeSet.getExpiredNodes();
+							newcfg = (UpdatableInterproceduralCFG<N, M>) icfg();
+						}
+						
 						// We need to keep track of the records we have already updated.
 						// To avoid having to (costly) enlarge hash maps during the run, we
 						// use the current size as an estimate.
@@ -662,9 +721,9 @@ public class IDESolver<N, D, M, V, I extends InterproceduralCFG<N, M>> {
 						System.out.println("Constructed a change set of " + changeSet.size() + " nodes.");
 						int expiredEdgeCount = expiredEdges.size();
 						int newEdgeCount = newEdges.size();
-						newEdges = null;
+						/*newEdges = null;
 						expiredEdges = null;
-						expiredNodes = null;
+						expiredNodes = null;*/
 						oldcfg = null;
 						//				Runtime.getRuntime().gc();		// save memory
 
@@ -796,7 +855,7 @@ public class IDESolver<N, D, M, V, I extends InterproceduralCFG<N, M>> {
 									+ (System.nanoTime() - beforeEdges) / 1E9 + " seconds");
 						}
 
-						newNodes = null;
+//						newNodes = null;
 						this.changedNodes = null;
 
 						// Phase 2: Make sure that all incoming edges to join points are considered
@@ -1075,7 +1134,7 @@ public class IDESolver<N, D, M, V, I extends InterproceduralCFG<N, M>> {
 					inc.put(entry.getKey(), new HashSet<Pair<D, D>>(entry.getValue()));
 			}
 		}
-		
+
 		if (operationMode == OperationMode.Update)
 			return;
 
@@ -1459,7 +1518,12 @@ public class IDESolver<N, D, M, V, I extends InterproceduralCFG<N, M>> {
 				val.put(nHashN, nHashD, l);
 		}
 		//    debugger.setValue(nHashN, nHashD, l);
-		logger.debug("VALUE: {} {} {} {}", icfg.getMethodOf(nHashN), nHashN, nHashD, l);
+		try {
+			logger.debug("VALUE: {} {} {} {}", icfg.getMethodOf(nHashN), nHashN, nHashD, l);
+		}
+		catch(Exception e) {
+
+		}
 	}
 
 	private EdgeFunction<V> jumpFunction(PathEdge<N, D> edge) {
@@ -1556,6 +1620,10 @@ public class IDESolver<N, D, M, V, I extends InterproceduralCFG<N, M>> {
 		return val.get(stmt, value);
 	}
 
+	public Table<N, D, V> allResults() {
+		return val;
+	}
+
 	public HashBasedTable<N, D, V> results(){
 		HashBasedTable<N, D, V> res = HashBasedTable.create();
 		for(Cell<N,D,V> cell : val.cellSet()){
@@ -1619,7 +1687,7 @@ public class IDESolver<N, D, M, V, I extends InterproceduralCFG<N, M>> {
 		}
 
 		public void run() {
-			System.out.println("Processing edge " + edge);
+			//			System.out.println("Processing edge " + edge);
 			if (icfg.isCallStmt(edge.getTarget())) {
 				processCall(edge);
 			} else {
