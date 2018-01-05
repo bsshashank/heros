@@ -919,6 +919,9 @@ public class IDESolver<N, D, M, V, I extends InterproceduralCFG<N, M>> {
 								+ (System.nanoTime() - beforePhase1) / 1E9 + " seconds for "
 								+ methCnt + " methods.");
 
+						this.computeValues(this.initialSeeds);
+						if(true)
+							return;
 						//Phase II(ii)
 						//we create an array of all nodes and then dispatch fractions of this array to multiple threads
 						long beforePhase2 = System.nanoTime();
@@ -935,15 +938,18 @@ public class IDESolver<N, D, M, V, I extends InterproceduralCFG<N, M>> {
 							scheduleValueComputationTask(task);
 						}
 						//await termination of tasks
-						try {
+						/*try {
 							executor.awaitCompletion();
 						} catch (InterruptedException e) {
 							e.printStackTrace();
 						}
 						System.out.println("Phase 3.3: Worklist processing done, " + propagationCount + " edges processed"
 								+ " in " + (System.nanoTime() - beforePhase2) / 1E9 + " seconds.");
-						shutdownExecutor();
-
+						shutdownExecutor();*/
+						
+						runExecutorAndAwaitCompletion();
+						System.out.println("Phase 3.3: Worklist processing done, " + propagationCount + " edges processed"
+								+ " in " + (System.nanoTime() - beforePhase2) / 1E9 + " seconds.");
 						/*
 				System.out.println("Phase 3: Processing worklist for values...");
 				long beforeVals = System.nanoTime();
@@ -1386,6 +1392,8 @@ public class IDESolver<N, D, M, V, I extends InterproceduralCFG<N, M>> {
 			PathEdge<N, D> edge = new PathEdge<N, D>(sourceVal, target, targetVal);
 			scheduleEdgeProcessing(edge);
 			visitedMethods.add( icfg().getMethodOf(target));
+			if (changedMethods != null)
+				changedMethods.add(icfg().getMethodOf(target));
 			if (targetVal != zeroValue) {
 				logger.trace("{} - EDGE: <{},{}> -> <{},{}> - {}", getDebugName(), icfg().getMethodOf(target),
 						sourceVal, target, targetVal, fPrime);
