@@ -919,45 +919,12 @@ public class IDESolver<N, D, M, V, I extends InterproceduralCFG<N, M>> {
 								+ (System.nanoTime() - beforePhase1) / 1E9 + " seconds for "
 								+ methCnt + " methods.");
 
-						this.computeValues(this.initialSeeds);
-						if(true)
-							return;
 						//Phase II(ii)
-						//we create an array of all nodes and then dispatch fractions of this array to multiple threads
+						//dispatch a value computation phase
 						long beforePhase2 = System.nanoTime();
-						Set<N> allNonCallStartNodes = icfg().allNonCallStartNodes();
-						N[] nonCallStartNodesArray = (N[]) new Object[allNonCallStartNodes.size()];
-						int i=0;
-						for (N n : allNonCallStartNodes) {
-							nonCallStartNodesArray[i] = n;
-							i++;
-						}
-						//No need to keep track of the number of tasks scheduled here, since we call shutdown
-						for(int t=0;t<numThreads; t++) {
-							ValueComputationTask task = new ValueComputationTask(nonCallStartNodesArray, t);
-							scheduleValueComputationTask(task);
-						}
-						//await termination of tasks
-						/*try {
-							executor.awaitCompletion();
-						} catch (InterruptedException e) {
-							e.printStackTrace();
-						}
+						this.computeValues(this.initialSeeds);
 						System.out.println("Phase 3.3: Worklist processing done, " + propagationCount + " edges processed"
 								+ " in " + (System.nanoTime() - beforePhase2) / 1E9 + " seconds.");
-						shutdownExecutor();*/
-						
-						runExecutorAndAwaitCompletion();
-						System.out.println("Phase 3.3: Worklist processing done, " + propagationCount + " edges processed"
-								+ " in " + (System.nanoTime() - beforePhase2) / 1E9 + " seconds.");
-						/*
-				System.out.println("Phase 3: Processing worklist for values...");
-				long beforeVals = System.nanoTime();
-				executor = getExecutor();
-				awaitCompletionComputeValuesAndShutdown(true);
-				System.out.println("Phase 3: Worklist processing done, " + propagationCount + " edges processed"
-						+ " in " + (System.nanoTime() - beforeVals) / 1E9 + " seconds.");
-						 */
 	}
 
 	/**
