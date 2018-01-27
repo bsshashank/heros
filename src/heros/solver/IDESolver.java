@@ -997,8 +997,13 @@ public class IDESolver<N, D, M, V, I extends InterproceduralCFG<N, M>> {
 								EdgeFunction<V> fPrime = f4.composeWith(fCalleeSummary).composeWith(f5);
 								logger.debug("COMPOSE {} with {} and then the result with {} is {}", f4,
 										fCalleeSummary, f5, fPrime);
-								if (operationMode == OperationMode.Update)
-									clearAndPropagate(d1, retSiteN, d5, f.composeWith(fPrime));
+								if (operationMode == OperationMode.Update) {
+									D d5_restoredCtx = restoreContextOnReturnedFact(d2, d5);
+									EdgeFunction<V> edgefunc = f.composeWith(fPrime);
+									if(!fPrime.equalTo(EdgeIdentity.<V>v()))
+										flows.nonIdentityReturnFlow(eP, d2, n, d5_restoredCtx, retSiteN, d1,edgefunc);
+									clearAndPropagate(d1, retSiteN, d5_restoredCtx, f.composeWith(fPrime), n);
+								}
 								else
 								{
 									D d5_restoredCtx = restoreContextOnReturnedFact(d2, d5);
@@ -1026,8 +1031,11 @@ public class IDESolver<N, D, M, V, I extends InterproceduralCFG<N, M>> {
 			for (D d3 : targets) {
 				EdgeFunction<V> edgeFnE =
 						edgeFunctions.getCallToReturnEdgeFunction(d1, n, d2, returnSiteN, d3);
-				if (operationMode == OperationMode.Update)
-					clearAndPropagate(d1, returnSiteN, d3, f.composeWith(edgeFnE));
+				if (operationMode == OperationMode.Update) {
+					if(!edgeFnE.equalTo(EdgeIdentity.<V>v()))
+						flows.nonIdentityCallToReturnFlow(d2, n, d3, returnSiteN, d1,f.composeWith(edgeFnE));
+					clearAndPropagate(d1, returnSiteN, d3, f.composeWith(edgeFnE), n);
+				}
 				else
 				{
 					if(!edgeFnE.equalTo(EdgeIdentity.<V>v()))
@@ -1262,7 +1270,7 @@ public class IDESolver<N, D, M, V, I extends InterproceduralCFG<N, M>> {
 				EdgeFunction<V> fprime =
 						f.composeWith(edgeFunctions.getNormalEdgeFunction(d1, n, d2, m, d3));
 				if (operationMode == OperationMode.Update)
-					clearAndPropagate(d1, m, d3, fprime);
+					clearAndPropagate(d1, m, d3, fprime, null);
 				else
 					propagate(d1, m, d3, fprime, null, false);
 				//        debugger.normalFlow(n, d2, m, d3);
@@ -1272,7 +1280,7 @@ public class IDESolver<N, D, M, V, I extends InterproceduralCFG<N, M>> {
 		}
 	}
 
-	private void clearAndPropagate(D sourceVal, N target, D targetVal, EdgeFunction<V> f) {
+	private void clearAndPropagate(D sourceVal, N target, D targetVal, EdgeFunction<V> f, N n) {
 		assert operationMode == OperationMode.Update;
 		assert sourceVal != null;
 		assert target != null;
@@ -1288,7 +1296,7 @@ public class IDESolver<N, D, M, V, I extends InterproceduralCFG<N, M>> {
 						this.jumpFn.removeFunction(sourceVal, target, d);
 				}
 			}
-			propagate(sourceVal, target, targetVal, f, null, false);
+			propagate(sourceVal, target, targetVal, f, n, false);
 		}
 	}
 
