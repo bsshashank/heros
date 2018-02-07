@@ -246,7 +246,7 @@ public class IDESolver<N, D, M, V, I extends InterproceduralCFG<N, M>> {
 				edgeFunctionCacheBuilder = edgeFunctionCacheBuilder.recordStats();
 		}
 		this.zeroValue = tabulationProblem.zeroValue();
-//		this.icfg = tabulationProblem.interproceduralCFG();
+		//		this.icfg = tabulationProblem.interproceduralCFG();
 		this.tabulationProblem = tabulationProblem;
 		FlowFunctions<N, D, M> flowFunctions = tabulationProblem.autoAddZero()
 				? new ZeroedFlowFunctions<N, D, M>(tabulationProblem.flowFunctions(),
@@ -787,7 +787,7 @@ public class IDESolver<N, D, M, V, I extends InterproceduralCFG<N, M>> {
 								executor = getExecutor();
 								while (!runList.isEmpty())
 									scheduleEdgeProcessing(runList.remove(0));
-//								awaitCompletionComputeValuesAndShutdown(false);
+								//								awaitCompletionComputeValuesAndShutdown(false);
 								runExecutorAndAwaitCompletion();
 
 								// If we have changed end summaries (more precisely: have changed
@@ -944,6 +944,13 @@ public class IDESolver<N, D, M, V, I extends InterproceduralCFG<N, M>> {
 		EdgeFunction<V> f = jumpFunction(edge);
 		logger.trace("Processing call to {} and func {}", edge,f);
 		Collection<N> returnSiteNs = icfg().getReturnSitesOfCallAt(n);
+
+		// We may have to erase a fact in the callees
+		if (d2 == null) {
+			for (N retSite : returnSiteNs)
+				clearAndPropagate(d1, retSite);
+			return;
+		}
 
 		// for each possible callee
 		Collection<M> callees = icfg().getCalleesOfCallAt(n);
@@ -1507,6 +1514,15 @@ public class IDESolver<N, D, M, V, I extends InterproceduralCFG<N, M>> {
 
 	private EdgeFunction<V> jumpFunction(PathEdge<N, D> edge) {
 		synchronized (jumpFn) {
+
+			/*Map<D, EdgeFunction<V>> temp = jumpFn.forwardLookup(edge.factAtSource(), edge.getTarget());
+			D tempFactAtTarget = edge.factAtTarget();
+
+			for (D d : temp.keySet()) {
+				if(d.hashCode() == tempFactAtTarget.hashCode())
+					System.out.println("same");
+			}*/
+
 			EdgeFunction<V> function =
 					jumpFn.forwardLookup(edge.factAtSource(), edge.getTarget()).get(edge.factAtTarget());
 			if (function == null) {
