@@ -667,6 +667,9 @@ public class IDESolver<N, D, M, V, I extends InterproceduralCFG<N, M>> {
 							expiredNodes = cfgChangeSet.getExpiredNodes();
 							newcfg = (UpdatableInterproceduralCFG<N, M>) icfg();
 						}
+						
+						ffCache.invalidateAll();
+						efCache.invalidateAll();
 
 						// We need to keep track of the records we have already updated.
 						// To avoid having to (costly) enlarge hash maps during the run, we
