@@ -598,7 +598,7 @@ public class IDESolver<N, D, M, V, I extends InterproceduralCFG<N, M>> {
 	}
 
 	@SuppressWarnings("unchecked")
-	public void update(I newCFG, CFGChangeSet<N> cfgChangeSet) {
+	public void update(I newCFG, CFGChangeSet<N> cfgChangeSet, boolean isInIDEPhase) {
 		System.out.println("-------------------------------------update------------------------------------");
 
 		// Check whether we need to update anything at all.
@@ -924,10 +924,12 @@ public class IDESolver<N, D, M, V, I extends InterproceduralCFG<N, M>> {
 
 						//Phase II(ii)
 						//dispatch a value computation phase
-						long beforePhase2 = System.nanoTime();
-						this.computeValues(this.initialSeeds);
-						System.out.println("Phase 3.3: Worklist processing done, " + propagationCount + " edges processed"
-								+ " in " + (System.nanoTime() - beforePhase2) / 1E9 + " seconds.");
+						if(isInIDEPhase) {
+							long beforePhase2 = System.nanoTime();
+							this.computeValues(this.initialSeeds);
+							System.out.println("Phase 3.3: Worklist processing done, " + propagationCount + " edges processed"
+									+ " in " + (System.nanoTime() - beforePhase2) / 1E9 + " seconds.");
+						}
 	}
 
 	/**
