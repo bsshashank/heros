@@ -110,5 +110,12 @@ public interface EdgeFunctions<N, D, M, V> {
 	 *            associated at the returnSite.
 	 */
 	public EdgeFunction<V> getCallToReturnEdgeFunction(D sourceFact, N callSite, D callNode, N returnSite, D returnSideNode);
+	
+	/**
+	 * Updates the edge functions. This is called when performing an incremental build of the analysis results.
+	 * The user has to make sure that this method is implemented in order to support incremental builds of the analysis by updating the matcher states for the new 
+	 * Scene object.
+	 */
+	public void updateEdgeFunction();
 
 }

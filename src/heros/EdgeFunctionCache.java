@@ -310,4 +310,9 @@ public class EdgeFunctionCache<N, D, M, V> implements EdgeFunctions<N, D, M, V> 
 		this.callToReturnCache.invalidateAll();
 	}
 
+	@Override
+	public void updateEdgeFunction() {
+		this.delegate.updateEdgeFunction();
+	}
+
 }

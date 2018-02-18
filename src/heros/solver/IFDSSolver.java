@@ -162,6 +162,11 @@ public class IFDSSolver<N, D, M, I extends InterproceduralCFG<N, M>>
 						return ALL_BOTTOM;
 					return EdgeIdentity.v();
 				}
+
+				@Override
+				public void updateEdgeFunction() {
+					this.updateEdgeFunction();
+				}
 			}
 
 			@Override
