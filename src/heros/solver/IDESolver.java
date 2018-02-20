@@ -549,7 +549,7 @@ public class IDESolver<N, D, M, V, I extends InterproceduralCFG<N, M>> {
 		}
 	}
 
-	public void computeChangeSetAndMergeICFG(UpdatableInterproceduralCFG<N, M> newCFG, CFGChangeSet<N> changeSet) {
+	/*public void computeChangeSetAndMergeICFG(UpdatableInterproceduralCFG<N, M> newCFG, CFGChangeSet<N> changeSet) {
 		// Check whether we need to update anything at all.
 		if (newCFG == icfg())
 			return;
@@ -595,7 +595,7 @@ public class IDESolver<N, D, M, V, I extends InterproceduralCFG<N, M>> {
 								+ newEdges.size() + " new edges, "
 								+ expiredNodes.size() + " expired nodes, and "
 								+ newNodes.size() + " new nodes.");
-	}
+	}*/
 
 	@SuppressWarnings("unchecked")
 	public void update(I newCFG, CFGChangeSet<N> cfgChangeSet, boolean isInIDEPhase) {
