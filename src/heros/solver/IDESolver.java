@@ -318,7 +318,7 @@ public class IDESolver<N, D, M, V, I extends InterproceduralCFG<N, M>> {
 	 */
 	protected void scheduleEdgeProcessing(PathEdge<N, D> edge) {
 		worklist.add(new PathEdgeProcessingTask(edge));
-		propagationCount++;
+//		propagationCount++;
 	}
 
 	/**
@@ -679,6 +679,8 @@ public class IDESolver<N, D, M, V, I extends InterproceduralCFG<N, M>> {
 						this.changedNodes = new ConcurrentHashMap<N, Set<D>>((int) this.propagationCount);
 						this.changedEndSums = new ConcurrentHashMap<N, Set<D>>((int) this.propagationCount);
 						this.propagationCount = 0;
+						
+//						System.out.println("Propagation count reset to 0 " + this.propagationCount);
 
 						// Clear the computed values
 						//				val.clear();
@@ -1386,6 +1388,8 @@ public class IDESolver<N, D, M, V, I extends InterproceduralCFG<N, M>> {
 				logger.trace("{} - EDGE: <{},{}> -> <{},{}> - {}", getDebugName(), icfg().getMethodOf(target),
 						sourceVal, target, targetVal, fPrime);
 			}
+			propagationCount++;
+//			System.out.println("propagation count in Propagate() " + this.propagationCount);
 		} else{
 			logger.trace("End of Propagation {} - EDGE: <{},{}> -> <{},{}> - {}", getDebugName(), icfg().getMethodOf(target),
 					sourceVal, target, targetVal, fPrime);
@@ -1625,6 +1629,10 @@ public class IDESolver<N, D, M, V, I extends InterproceduralCFG<N, M>> {
 		return val;
 	}
 
+	public long getEdgeCount() {
+		return this.propagationCount;
+	}
+	
 	public HashBasedTable<N, D, V> results(){
 		HashBasedTable<N, D, V> res = HashBasedTable.create();
 		for(Cell<N,D,V> cell : val.cellSet()){
