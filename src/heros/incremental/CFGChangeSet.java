@@ -24,7 +24,16 @@ public class CFGChangeSet<N> {
 	private Set<UpdatableWrapper<N>> newNodes;
 	private Set<UpdatableWrapper<N>> expiredNodes;
 	private boolean changeSetComputed;
+	private long computationTime;
 	
+	public long getComputationTime() {
+		return computationTime;
+	}
+
+	public void setComputationTime(long computationTime) {
+		this.computationTime = computationTime;
+	}
+
 	public void createChangedEdgeSet(int edgeCount) {
 		expiredEdges = new HashMap<UpdatableWrapper<N>, List<UpdatableWrapper<N>>>(edgeCount);
 		newEdges = new HashMap<UpdatableWrapper<N>, List<UpdatableWrapper<N>>>(edgeCount);

@@ -219,6 +219,22 @@ public class IDESolver<N, D, M, V, I extends InterproceduralCFG<N, M>> {
 
 	private int jumpSaveSize = 5000;
 
+	private long phaseOneUpdateRunTime;
+
+	private long phaseTwoUpdateRunTime;
+
+	private long phaseThreeUpdateRunTime;
+
+	private long changeSetOrderingRunTime;
+
+	private long changeSetComputationRunTime;
+
+	private long valuePruneRuntime;
+
+	private long expiredNodesRemoval;
+
+	private long totalUpdateRunTime;
+
 	/**
 	 * Creates a solver for the given problem, which caches flow functions and edge functions. The
 	 * solver must then be started by calling {@link #solve()}.
@@ -647,6 +663,9 @@ public class IDESolver<N, D, M, V, I extends InterproceduralCFG<N, M>> {
 							long beforeMerge = System.nanoTime();
 							newcfg.merge(oldcfg);
 							System.out.println("CFG wrappers merged in " + (System.nanoTime() - beforeMerge) / 1E9 + " seconds.");
+							
+							this.changeSetComputationRunTime = System.nanoTime() - beforeChangeset;
+							cfgChangeSet.setComputationTime(changeSetComputationRunTime);
 
 							System.out.println("Changeset computed in " + (System.nanoTime() - beforeChangeset) / 1E9
 									+ " seconds. Found " + expiredEdges.size() + " expired edges, "
@@ -668,6 +687,8 @@ public class IDESolver<N, D, M, V, I extends InterproceduralCFG<N, M>> {
 							newcfg = (UpdatableInterproceduralCFG<N, M>) icfg();
 						}
 						
+						long updateStartTime = System.nanoTime();
+						
 						ffCache.invalidateAll();
 						efCache.invalidateAll();
 						edgeFunctions.updateEdgeFunction();
@@ -688,6 +709,7 @@ public class IDESolver<N, D, M, V, I extends InterproceduralCFG<N, M>> {
 						// Prune the old values
 						long beforePrune = System.nanoTime();
 						pruneExpiredValues(this.changedNodes.keySet(), newcfg);
+						this.valuePruneRuntime = System.nanoTime() - beforePrune;
 						System.out.println("Phase 3.1: Values pruned in " + (System.nanoTime() - beforePrune) / 1E9
 								+ " seconds.");
 
@@ -705,6 +727,7 @@ public class IDESolver<N, D, M, V, I extends InterproceduralCFG<N, M>> {
 							for (Cell<N, D, Table<N, D, EdgeFunction<V>>> cell : endSummary.cellSet())
 								Utils.removeElementFromTable(cell.getValue(), n0);
 						}
+						this.expiredNodesRemoval = System.nanoTime() - beforeRemove;
 						System.out.println("Expired nodes removed in "
 								+ (System.nanoTime() - beforeRemove) / 1E9
 								+ " seconds.");
@@ -745,6 +768,7 @@ public class IDESolver<N, D, M, V, I extends InterproceduralCFG<N, M>> {
 							assert orderedMethods.size() == changeSet.size();
 							System.out.println("Ordering changed methods took "
 									+ (System.nanoTime() - beforeClearCallees) / 1E9 + " seconds.");
+							this.changeSetOrderingRunTime = System.nanoTime() - beforeClearCallees;
 
 							Table<N,D,Table<N,D,EdgeFunction<V>>> oldEndSummaries = HashBasedTable.create(endSummary);
 
@@ -857,6 +881,8 @@ public class IDESolver<N, D, M, V, I extends InterproceduralCFG<N, M>> {
 									+ propagationCount + " exploded edges, "
 									+ changeSet.size() + " methods) in "
 									+ (System.nanoTime() - beforeEdges) / 1E9 + " seconds");
+							
+							this.phaseOneUpdateRunTime = System.nanoTime() - beforeEdges;
 						}
 
 						newNodes = null;
@@ -898,6 +924,8 @@ public class IDESolver<N, D, M, V, I extends InterproceduralCFG<N, M>> {
 
 							System.out.println("Phase 2: Recomputed " + edgeIdx + " join edges in "
 									+ (System.nanoTime() - prePhase2) / 1E9 + " seconds");
+							
+							this.phaseTwoUpdateRunTime = System.nanoTime() - prePhase2;
 						}
 
 						// Save some memory
@@ -932,7 +960,17 @@ public class IDESolver<N, D, M, V, I extends InterproceduralCFG<N, M>> {
 							this.computeValues(this.initialSeeds);
 							System.out.println("Phase 3.3: Worklist processing done, " + propagationCount + " edges processed"
 									+ " in " + (System.nanoTime() - beforePhase2) / 1E9 + " seconds.");
+							this.phaseThreeUpdateRunTime = System.nanoTime() - beforePhase2;
 						}
+						this.totalUpdateRunTime = System.nanoTime() - updateStartTime;
+	}
+	
+	public long getDiffTime() {
+		return this.changeSetComputationRunTime;
+	}
+	
+	public long getUpdateRunTime() {
+		return this.totalUpdateRunTime;
 	}
 
 	/**
